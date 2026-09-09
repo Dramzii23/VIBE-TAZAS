@@ -1,0 +1,6 @@
+{
+  "name": "Configurador de Tazas Sublimadas",
+  "description": "Configurador web para productos sublimados con área de diseño personalizada para tazas y carga de imágenes JPG/PNG.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
