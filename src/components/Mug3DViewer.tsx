@@ -19,7 +19,9 @@ import {
   HelpCircle,
   FileCode,
   Sliders,
+  ImageIcon,
 } from 'lucide-react';
+import { UploadedImage, ImageTransform } from '../types';
 
 interface MeshInfo {
   name: string;
@@ -42,7 +44,12 @@ interface ModelMetadata {
   hasValidUVs: boolean;
 }
 
-export const Mug3DViewer: React.FC = () => {
+interface Mug3DViewerProps {
+  image?: UploadedImage | null;
+  imageTransform?: ImageTransform | null;
+}
+
+export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTransform = null }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
 
@@ -55,6 +62,14 @@ export const Mug3DViewer: React.FC = () => {
   const animFrameIdRef = useRef<number | null>(null);
   const sublimationMeshRef = useRef<THREE.Mesh | null>(null);
   const originalSublimationMaterialRef = useRef<THREE.Material | null>(null);
+  const designTextureRef = useRef<THREE.CanvasTexture | null>(null);
+  const textureGenIdRef = useRef(0);
+
+  // Keep latest props in refs so callbacks can read them without stale closure
+  const imageRef = useRef<UploadedImage | null>(image);
+  imageRef.current = image;
+  const imageTransformRef = useRef<ImageTransform | null | undefined>(imageTransform);
+  imageTransformRef.current = imageTransform;
 
   // Component states
   const [loading, setLoading] = useState<boolean>(true);
@@ -180,6 +195,10 @@ export const Mug3DViewer: React.FC = () => {
       }
       controls.dispose();
       renderer.dispose();
+      if (designTextureRef.current) {
+        designTextureRef.current.dispose();
+        designTextureRef.current = null;
+      }
       if (canvasMountRef.current) {
         canvasMountRef.current.replaceChildren();
       }
@@ -209,6 +228,84 @@ export const Mug3DViewer: React.FC = () => {
       }
     });
   }, [wireframe]);
+
+  // Render user design onto an offscreen canvas and apply as CanvasTexture to the sublimation mesh
+  const generateAndApplyTexture = useCallback(() => {
+    const originalMat = originalSublimationMaterialRef.current;
+    if (!originalMat) return;
+
+    const currentImage = imageRef.current;
+    const genId = ++textureGenIdRef.current;
+
+    if (!currentImage) {
+      (originalMat as any).map = null;
+      originalMat.needsUpdate = true;
+      if (designTextureRef.current) {
+        designTextureRef.current.dispose();
+        designTextureRef.current = null;
+      }
+      return;
+    }
+
+    const htmlImg = new window.Image();
+    htmlImg.onload = () => {
+      if (genId !== textureGenIdRef.current) return; // Stale generation, skip
+
+      const CANVAS_W = 2000;
+      const CANVAS_H = 950;
+      const offscreen = document.createElement('canvas');
+      offscreen.width = CANVAS_W;
+      offscreen.height = CANVAS_H;
+      const ctx = offscreen.getContext('2d');
+      if (!ctx) return;
+
+      // White sublimation base
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+      // Clip to canvas bounds so overflow areas don't bleed onto the texture
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, CANVAS_W, CANVAS_H);
+      ctx.clip();
+
+      // Convert percentage transform to pixel coordinates
+      const t = imageTransformRef.current || { x: 0, y: 0, width: 100, height: 100 };
+      ctx.drawImage(
+        htmlImg,
+        (t.x / 100) * CANVAS_W,
+        (t.y / 100) * CANVAS_H,
+        (t.width / 100) * CANVAS_W,
+        (t.height / 100) * CANVAS_H
+      );
+      ctx.restore();
+
+      if (designTextureRef.current) {
+        designTextureRef.current.dispose();
+      }
+
+      const texture = new THREE.CanvasTexture(offscreen);
+      // flipY = false matches GLB UV convention exported from Blender via GLTFLoader
+      texture.flipY = false;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.needsUpdate = true;
+      designTextureRef.current = texture;
+
+      const mat = originalSublimationMaterialRef.current;
+      if (mat) {
+        (mat as any).map = texture;
+        (mat as any).color?.set(0xffffff); // Ensure base color is white so texture shows correctly
+        mat.needsUpdate = true;
+      }
+    };
+
+    htmlImg.src = currentImage.dataUrl;
+  }, []);
+
+  // Trigger texture update whenever image, transform, or model (modelMeta) changes
+  useEffect(() => {
+    generateAndApplyTexture();
+  }, [image, imageTransform, modelMeta, generateAndApplyTexture]);
 
   // Highlight sublimation zone with visual pulse
   useEffect(() => {
@@ -260,7 +357,15 @@ export const Mug3DViewer: React.FC = () => {
       let targetSubMesh: THREE.Mesh | null = null;
       let targetSubOriginalMat: THREE.Material | null = null;
 
-      // Center and normalize Blender model positioning
+      // Normalize model scale so the mug is always ~2 units tall in the scene
+      // Blender exports in meters (~0.095m for an 11oz mug) — without this it appears microscopic
+      const rawBox = new THREE.Box3().setFromObject(gltfScene);
+      const rawSize = rawBox.getSize(new THREE.Vector3());
+      const targetHeight = 2.0;
+      const scaleFactor = rawSize.y > 0 ? targetHeight / rawSize.y : 1;
+      gltfScene.scale.setScalar(scaleFactor);
+
+      // Recalculate bounding box after scaling for correct centering
       const box = new THREE.Box3().setFromObject(gltfScene);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
@@ -520,13 +625,19 @@ export const Mug3DViewer: React.FC = () => {
             <Box className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-display font-semibold text-sm text-stone-900">
                 Visor 3D del Modelo (Blender GLB)
               </h3>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide">
                 GLB Activo
               </span>
+              {image && (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wide flex items-center gap-1">
+                  <ImageIcon className="w-3 h-3" />
+                  Textura aplicada
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-stone-500">
               {modelMeta?.fileName || 'Taza_Mug_Normal.glb'} • Proporciones reales de producto
@@ -813,11 +924,11 @@ export const Mug3DViewer: React.FC = () => {
           <div className="text-[11px] text-stone-600 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 flex items-start gap-2">
             <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
             <span>
-              <strong>Criterio de aceptación cumplido:</strong> El material{' '}
+              <strong>Textura dinámica activa:</strong> El material{' '}
               <code className="bg-white px-1 py-0.5 rounded border border-indigo-200 text-indigo-900 font-semibold">
                 {modelMeta.sublimationMaterial || 'Material_Sublimacion'}
               </code>{' '}
-              está identificado y accesible en la escena Three.js, listo para mapear dinámicamente la textura del diseño en el siguiente sprint.
+              recibe en tiempo real el diseño del editor 2D como <code className="bg-white px-1 py-0.5 rounded border border-indigo-200 text-indigo-900">CanvasTexture</code> (2000 × 950 px, flipY=false, SRGB). Cada cambio de posición o escala se refleja inmediatamente en el modelo 3D.
             </span>
           </div>
         </div>

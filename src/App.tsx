@@ -289,7 +289,10 @@ export default function App() {
                   </div>
 
                   {previewMode === '3d' ? (
-                    <Mug3DViewer />
+                    <Mug3DViewer
+                      image={uploadedImage}
+                      imageTransform={canvasSettings.imageTransform}
+                    />
                   ) : (
                     <MugPreviewCard image={uploadedImage} transform={canvasSettings.imageTransform} />
                   )}
