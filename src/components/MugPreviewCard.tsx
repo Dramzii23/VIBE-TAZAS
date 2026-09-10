@@ -1,25 +1,33 @@
 import React, { useState } from 'react';
 import { Coffee, RotateCw, Sparkles, Check, Info } from 'lucide-react';
-import { UploadedImage, STANDARD_MUG_SPEC } from '../types';
+import { UploadedImage, STANDARD_MUG_SPEC, ImageTransform } from '../types';
+import { computeInitialTransform } from '../utils/transformUtils';
 
 interface MugPreviewCardProps {
   image: UploadedImage | null;
+  transform?: ImageTransform | null;
 }
 
-export const MugPreviewCard: React.FC<MugPreviewCardProps> = ({ image }) => {
+export const MugPreviewCard: React.FC<MugPreviewCardProps> = ({ image, transform }) => {
   // Angle view selector: Front view (Frente), Center view, or Back view (Reverso)
   const [viewAngle, setViewAngle] = useState<'front' | 'center' | 'back'>('front');
 
-  // Calculate slice offset based on perspective angle
-  const getBackgroundPosition = () => {
+  // Compute safe transform
+  const safeTransform: ImageTransform = transform || (image
+    ? computeInitialTransform(image.width, image.height, 'contain')
+    : { x: 0, y: 0, width: 100, height: 100 }
+  );
+
+  // Offset the panoramic 300% band according to view angle
+  const getPanoramicLeftOffset = () => {
     switch (viewAngle) {
       case 'back':
-        return '15% center';
+        return '0%';
       case 'center':
-        return '50% center';
+        return '-100%';
       case 'front':
       default:
-        return '85% center';
+        return '-200%';
     }
   };
 
@@ -121,17 +129,31 @@ export const MugPreviewCard: React.FC<MugPreviewCardProps> = ({ image }) => {
             </div>
 
             {/* Sublimation Printable Band Applied on the Mug */}
-            <div className="relative w-full h-[78%] my-auto overflow-hidden bg-stone-100/40 border-y border-stone-200/50 flex items-center justify-center">
+            <div className="relative w-full h-[78%] my-auto overflow-hidden bg-white border-y border-stone-200/50 flex items-center justify-center">
               {image ? (
                 <div 
-                  className="w-full h-full transition-all duration-300"
+                  className="absolute top-0 bottom-0 transition-all duration-300 pointer-events-none"
                   style={{
-                    backgroundImage: `url(${image.dataUrl})`,
-                    backgroundSize: '240% 100%',
-                    backgroundPosition: getBackgroundPosition(),
-                    backgroundRepeat: 'no-repeat',
+                    width: '300%',
+                    left: getPanoramicLeftOffset(),
                   }}
-                />
+                >
+                  <div
+                    className="absolute"
+                    style={{
+                      left: `${safeTransform.x}%`,
+                      top: `${safeTransform.y}%`,
+                      width: `${safeTransform.width}%`,
+                      height: `${safeTransform.height}%`,
+                    }}
+                  >
+                    <img
+                      src={image.dataUrl}
+                      alt="Diseño en taza"
+                      className="w-full h-full object-fill pointer-events-none"
+                    />
+                  </div>
+                </div>
               ) : (
                 <div className="text-center p-3 opacity-60">
                   <div className="w-8 h-8 rounded-full border border-dashed border-stone-400 mx-auto mb-1 flex items-center justify-center text-stone-400">
@@ -145,7 +167,7 @@ export const MugPreviewCard: React.FC<MugPreviewCardProps> = ({ image }) => {
 
               {/* Cylindrical lighting overlay to give true curved ceramic sheen */}
               <div 
-                className="absolute inset-0 pointer-events-none"
+                className="absolute inset-0 pointer-events-none z-10"
                 style={{
                   background: 'linear-gradient(90deg, rgba(0,0,0,0.12) 0%, rgba(255,255,255,0.4) 20%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.08) 100%)',
                 }}

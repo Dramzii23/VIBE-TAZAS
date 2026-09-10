@@ -1,0 +1,100 @@
+{
+  "entities": {
+    "users": {
+      "title": "Perfil de Usuario",
+      "description": "Datos de perfil y cuenta de usuario registrado",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Identificador único de Firebase Auth"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Correo electrónico del usuario"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Nombre visible del usuario",
+          "maxLength": 100
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL de la foto de perfil o avatar"
+        },
+        "role": {
+          "type": "string",
+          "description": "Rol de usuario",
+          "enum": ["cliente", "disenador", "admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha y hora de creación de la cuenta"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha y hora del último inicio de sesión"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "custom_designs": {
+      "title": "Diseño de Sublimación Guardado",
+      "description": "Diseños personalizados de tazas para sublimación creados por los usuarios",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Nombre del diseño de taza",
+          "maxLength": 100
+        },
+        "imageName": {
+          "type": "string",
+          "description": "Nombre de archivo de la imagen cargada",
+          "maxLength": 120
+        },
+        "dataUrl": {
+          "type": "string",
+          "description": "Imagen en Base64 o URL para el lienzo de sublimación"
+        },
+        "fitMode": {
+          "type": "string",
+          "description": "Modo de ajuste (contain, cover, stretch)",
+          "enum": ["contain", "cover", "stretch", "original"]
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID del usuario creador"
+        },
+        "dimensions": {
+          "type": "object",
+          "description": "Medidas de ancho, alto y peso formateado"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de creación"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de última modificación"
+        }
+      },
+      "required": ["name", "dataUrl", "userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "Almacena los perfiles de los usuarios registrados"
+    },
+    "/custom_designs/{designId}": {
+      "schema": "custom_designs",
+      "description": "Colección de diseños guardados por los usuarios"
+    }
+  }
+}

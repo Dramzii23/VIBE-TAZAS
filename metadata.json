@@ -1,6 +1,6 @@
 {
   "name": "Configurador de Tazas Sublimadas",
-  "description": "Configurador web para productos sublimados con área de diseño personalizada para tazas y carga de imágenes JPG/PNG.",
+  "description": "Configurador web para productos sublimados con visor 3D para el modelo Blender GLB (Taza_Mug_Normal.glb), detección de materiales y UVs de sublimación, y área de diseño para tazas de 11 oz.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

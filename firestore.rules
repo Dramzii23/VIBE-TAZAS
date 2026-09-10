@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        // User ID verificado de Super Administrador
+        request.auth.uid == '677rpirToDgJ9lNJmsvqhxOOBKf1' ||
+        // Verificación de email de Super Administrador
+        (request.auth.token.email != null && (
+          request.auth.token.email.matches('(?i)^dramzii23@gmail\\.com$') ||
+          request.auth.token.email.matches('(?i)^admin@sublistudio\\.com$') ||
+          request.auth.token.email == 'Dramzii23@gmail.com' ||
+          request.auth.token.email == 'dramzii23@gmail.com' ||
+          request.auth.token.email == 'admin@sublistudio.com'
+        )) ||
+        // Rol admin asignado en el documento de usuario
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ACCESO TOTAL SUPER ADMIN: El administrador tiene acceso irrestricto de lectura y escritura a toda la base de datos
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Documento de prueba de conectividad
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Colección de perfiles de usuario
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if (isOwner(userId) && request.resource.data.uid == userId) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Colección de diseños personalizados de tazas
+    match /custom_designs/{designId} {
+      // Lectura permitida para el dueño o para el administrador
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      // Creación por el usuario autenticado para sus propios diseños o por el admin
+      allow create: if (
+        isSignedIn() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 120
+      ) || isAdmin();
+      // Actualización y borrado por el creador original o admin
+      allow update: if (isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid) || isAdmin();
+      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+    }
+
+    // Colecciones complementarias de diseños y pedidos
+    match /designs/{designId} {
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if (isSignedIn() && request.resource.data.userId == request.auth.uid) || isAdmin();
+      allow update, delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+    }
+
+    match /disenos/{designId} {
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if (isSignedIn() && request.resource.data.userId == request.auth.uid) || isAdmin();
+      allow update, delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+    }
+
+    match /pedidos/{pedidoId} {
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if (isSignedIn() && request.resource.data.userId == request.auth.uid) || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+  }
+}

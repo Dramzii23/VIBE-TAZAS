@@ -14,6 +14,46 @@ export interface UploadedImage {
 
 export type FitMode = 'contain' | 'cover' | 'stretch' | 'original';
 
+export const ADMIN_UID = '677rpirToDgJ9lNJmsvqhxOOBKf1';
+export const ADMIN_EMAILS = [
+  'dramzii23@gmail.com',
+  'admin@sublistudio.com',
+];
+
+export function isUserAdmin(uid?: string | null, email?: string | null, role?: string | null): boolean {
+  if (uid && uid === ADMIN_UID) return true;
+  if (role === 'admin') return true;
+  if (email && ADMIN_EMAILS.includes(email.trim().toLowerCase())) return true;
+  return false;
+}
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string | null;
+  role?: 'cliente' | 'disenador' | 'admin';
+  createdAt?: string;
+  lastLoginAt?: string;
+}
+
+export interface AdminUserSummary {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string | null;
+  createdAt: string;
+  lastLoginAt?: string;
+  uploadedFilesCount: number;
+}
+
+export interface ImageTransform {
+  x: number; // Percentage (0-100) from left edge of canvas
+  y: number; // Percentage (0-100) from top edge of canvas
+  width: number; // Percentage (0-100) of canvas width
+  height: number; // Percentage (0-100) of canvas height
+}
+
 export interface DesignCanvasSettings {
   fitMode: FitMode;
   showGuides: boolean;
@@ -24,6 +64,7 @@ export interface DesignCanvasSettings {
   offsetX: number;
   offsetY: number;
   backgroundColor: string;
+  imageTransform?: ImageTransform | null;
 }
 
 export interface MugSpecification {
@@ -51,3 +92,4 @@ export const STANDARD_MUG_SPEC: MugSpecification = {
   printHeightPx: 1122,
   safeMarginCm: 0.5,
 };
+
