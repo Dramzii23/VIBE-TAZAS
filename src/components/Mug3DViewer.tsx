@@ -663,7 +663,7 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
       className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs flex flex-col gap-4 relative overflow-hidden"
     >
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
             <Box className="w-5 h-5" />
@@ -783,7 +783,7 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
 
       {/* Main 3D Canvas Stage Container */}
       <div
-        className={`relative w-full h-80 sm:h-96 rounded-xl border transition-all overflow-hidden flex items-center justify-center select-none ${
+        className={`relative w-full h-[480px] sm:h-[580px] rounded-xl border transition-all overflow-hidden flex items-center justify-center select-none ${
           isDragOver
             ? 'border-indigo-500 ring-4 ring-indigo-500/10 bg-indigo-50/20'
             : 'border-stone-200/80 bg-gradient-to-b from-stone-100/80 via-stone-50/50 to-stone-100/90'
@@ -794,6 +794,16 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
       >
         {/* Three.js Canvas Mount */}
         <div ref={canvasMountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+
+        {/* Watermark */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 select-none">
+          <span
+            className="text-stone-900 font-black uppercase tracking-[0.3em] text-2xl sm:text-3xl"
+            style={{ opacity: 0.04, transform: 'rotate(-25deg)', whiteSpace: 'nowrap' }}
+          >
+            MUESTRA · MALA TINTA
+          </span>
+        </div>
 
         {/* Loading Spinner State */}
         {loading && (
