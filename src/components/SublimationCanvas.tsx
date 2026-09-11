@@ -302,6 +302,17 @@ export const SublimationCanvas: React.FC<SublimationCanvasProps> = ({
               </span>
             </h2>
           </div>
+          {/* Upload button beside the title */}
+          <button
+            type="button"
+            onClick={onTriggerUpload}
+            className="inline-flex items-center gap-1.5 ml-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-xs cursor-pointer"
+            title="Seleccionar o cambiar imagen"
+          >
+            <ZoomIn className="w-3 h-3" />
+            <span className="hidden sm:inline">{image ? 'Cambiar imagen' : 'Seleccionar imagen'}</span>
+            <span className="sm:hidden">Imagen</span>
+          </button>
         </div>
 
         {/* Canvas Toolbar Controls */}

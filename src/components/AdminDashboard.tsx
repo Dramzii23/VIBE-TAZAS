@@ -44,38 +44,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Prevent double-load when auth object re-evaluates
+  const hasLoadedRef = React.useRef(false);
+
   // Load all users
   const loadUsers = async () => {
     setLoadingUsers(true);
     setErrorFeedback(null);
     try {
       const data = await fetchAllUsersForAdmin();
-      setUsers(data);
-      // If a user was selected, keep or update selection
+
+      // Determine which user to auto-select before setting any state
+      let autoSelect: AdminUserSummary | null = null;
       if (selectedUser) {
-        const stillExists = data.find((u) => u.uid === selectedUser.uid);
-        if (stillExists) {
-          setSelectedUser(stillExists);
-        } else if (data.length > 0) {
-          handleSelectUser(data[0]);
-        }
+        autoSelect = data.find((u) => u.uid === selectedUser.uid) ?? (data[0] ?? null);
       } else if (data.length > 0) {
-        // Automatically select the first user
-        handleSelectUser(data[0]);
+        autoSelect = data[0];
+      }
+
+      // Batch: set users + loading off in one go
+      setUsers(data);
+      setLoadingUsers(false);
+
+      // Then kick off file loading for selected user
+      if (autoSelect) {
+        setSelectedUser(autoSelect);
+        setLoadingFiles(true);
+        try {
+          const files = await fetchUserFilesForAdmin(autoSelect.uid);
+          setUserFiles(files);
+        } catch (err) {
+          console.error('Error cargando archivos del usuario:', err);
+        } finally {
+          setLoadingFiles(false);
+        }
       }
     } catch (err: any) {
       console.error('Error cargando usuarios en panel admin:', err);
       setErrorFeedback('Error al consultar usuarios desde Firestore. Verifica permisos de administrador.');
-    } finally {
       setLoadingUsers(false);
     }
   };
 
   useEffect(() => {
-    if (!authLoading) {
-      loadUsers();
-    }
-  }, [authLoading, currentUser?.uid]);
+    // Only run once after auth resolves — ignore subsequent re-renders
+    if (authLoading || hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+    loadUsers();
+  }, [authLoading]);
 
   const handleSelectUser = async (user: AdminUserSummary) => {
     setSelectedUser(user);
@@ -207,7 +223,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
           <button
             type="button"
-            onClick={loadUsers}
+            onClick={() => { hasLoadedRef.current = false; loadUsers(); }}
             disabled={loadingUsers}
             className="p-2.5 rounded-xl border border-stone-200 text-stone-600 hover:text-indigo-600 hover:bg-stone-50 transition-colors cursor-pointer"
             title="Refrescar lista de usuarios"

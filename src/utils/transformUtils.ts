@@ -4,6 +4,57 @@ export const CANVAS_WIDTH_CM = 20.0;
 export const CANVAS_HEIGHT_CM = 9.5;
 export const CANVAS_ASPECT_RATIO = CANVAS_WIDTH_CM / CANVAS_HEIGHT_CM; // 20 / 9.5 = 2.105263
 
+// Supported DPI modes
+export type DpiMode = 72 | 150 | 300;
+
+/**
+ * Given image pixel dimensions and a target DPI, compute its physical size in cm.
+ * Formula: cm = (px / dpi) * 2.54
+ */
+export function pixelsToCm(px: number, dpi: DpiMode): number {
+  return (px / dpi) * 2.54;
+}
+
+/**
+ * Computes the initial transform for an image placed at its physical size
+ * derived from pixel dimensions + selected DPI.
+ *
+ * - If the physical size fits inside the print area, place it centered at that size.
+ * - If it's larger than the print area in any dimension, fall back to contain.
+ *
+ * Returns percentages (0–100) for x, y, width, height relative to the 20×9.5 cm canvas.
+ */
+export function computeInitialTransformByDpi(
+  imgWidthPx: number,
+  imgHeightPx: number,
+  dpi: DpiMode
+): ImageTransform {
+  const safeW = Math.max(1, imgWidthPx);
+  const safeH = Math.max(1, imgHeightPx);
+
+  const physicalWidthCm = pixelsToCm(safeW, dpi);
+  const physicalHeightCm = pixelsToCm(safeH, dpi);
+
+  // Convert physical cm to % of canvas
+  const widthPct = (physicalWidthCm / CANVAS_WIDTH_CM) * 100;
+  const heightPct = (physicalHeightCm / CANVAS_HEIGHT_CM) * 100;
+
+  // If image fits inside the printable area at its physical size, place it centered
+  if (widthPct <= 100 && heightPct <= 100) {
+    const x = (100 - widthPct) / 2;
+    const y = (100 - heightPct) / 2;
+    return {
+      x: Number(x.toFixed(2)),
+      y: Number(y.toFixed(2)),
+      width: Number(widthPct.toFixed(2)),
+      height: Number(heightPct.toFixed(2)),
+    };
+  }
+
+  // Falls back to contain (scale down proportionally to fit)
+  return computeInitialTransform(safeW, safeH, 'contain');
+}
+
 /**
  * Computes the initial placement of an image inside the 20x9.5cm canvas based on fit mode.
  * Returns percentages (0-100%) for x, y, width, and height.

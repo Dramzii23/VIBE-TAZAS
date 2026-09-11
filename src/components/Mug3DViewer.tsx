@@ -20,8 +20,23 @@ import {
   FileCode,
   Sliders,
   ImageIcon,
+  Palette,
 } from 'lucide-react';
 import { UploadedImage, ImageTransform } from '../types';
+
+// Preset colors for Mug_Inside UV Map
+const INSIDE_COLOR_PRESETS = [
+  { label: 'Blanco', value: '#ffffff' },
+  { label: 'Negro', value: '#1a1a1a' },
+  { label: 'Rojo', value: '#dc2626' },
+  { label: 'Azul', value: '#2563eb' },
+  { label: 'Verde', value: '#16a34a' },
+  { label: 'Amarillo', value: '#ca8a04' },
+  { label: 'Rosa', value: '#db2777' },
+  { label: 'Naranja', value: '#ea580c' },
+  { label: 'Morado', value: '#7c3aed' },
+  { label: 'Gris', value: '#6b7280' },
+];
 
 interface MeshInfo {
   name: string;
@@ -81,7 +96,11 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
   const [showTechInspector, setShowTechInspector] = useState<boolean>(false);
   const [currentCameraAngle, setCurrentCameraAngle] = useState<'front' | 'handle' | 'back' | 'top'>('front');
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
+  const [insideColor, setInsideColor] = useState<string>('#ffffff');
+  const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Ref to track inside mesh material for color changes
+  const insideMeshRef = useRef<THREE.Mesh | null>(null);
 
   // Initialize Three.js Scene, Camera, Lights and Renderer
   useEffect(() => {
@@ -186,7 +205,7 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
     }
 
     // Load initial GLB
-    loadModelFromUrl('/Taza_Mug_Normal.glb', 'Taza_Mug_Normal.glb');
+    loadModelFromUrl('/models/Taza_Mug_Normal 6.glb', 'Taza_Mug_Normal 6.glb');
 
     return () => {
       resizeObserver.disconnect();
@@ -307,6 +326,17 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
     generateAndApplyTexture();
   }, [image, imageTransform, modelMeta, generateAndApplyTexture]);
 
+  // Apply inside color to Mug_Inside mesh
+  useEffect(() => {
+    if (!insideMeshRef.current) return;
+    const mesh = insideMeshRef.current;
+    const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+    if (mat && 'color' in mat) {
+      (mat as any).color.set(insideColor);
+      mat.needsUpdate = true;
+    }
+  }, [insideColor, modelMeta]);
+
   // Highlight sublimation zone with visual pulse
   useEffect(() => {
     if (!sublimationMeshRef.current) return;
@@ -356,6 +386,7 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
       let detectedSublimationMeshName: string | null = null;
       let targetSubMesh: THREE.Mesh | null = null;
       let targetSubOriginalMat: THREE.Material | null = null;
+      let detectedInsideMesh: THREE.Mesh | null = null;
 
       // Normalize model scale so the mug is always ~2 units tall in the scene
       // Blender exports in meters (~0.095m for an 11oz mug) — without this it appears microscopic
@@ -411,6 +442,18 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
             detectedSublimationMeshName = mesh.name;
           }
 
+          // Detect Mug_Inside by material or mesh name
+          const isInsideMesh =
+            matName.toLowerCase().includes('inside') ||
+            matName.toLowerCase().includes('interior') ||
+            mesh.name.toLowerCase().includes('inside') ||
+            mesh.name.toLowerCase().includes('interior') ||
+            mesh.name.toLowerCase() === 'mug_inside';
+
+          if (isInsideMesh && !detectedInsideMesh) {
+            detectedInsideMesh = mesh;
+          }
+
           meshesList.push({
             name: mesh.name || 'Malla_Sin_Nombre',
             materialName: matName,
@@ -442,6 +485,7 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
 
       sublimationMeshRef.current = targetSubMesh;
       originalSublimationMaterialRef.current = targetSubOriginalMat;
+      insideMeshRef.current = detectedInsideMesh;
 
       // Add model to scene
       scene.add(gltfScene);
@@ -487,9 +531,9 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
         (err) => {
           console.warn(`Aviso cargando modelo desde ${url}:`, err);
           // Try fallback to /models/ if / failed
-          if (url === '/Taza_Mug_Normal.glb') {
+          if (url === '/models/Taza_Mug_Normal 6.glb') {
             loader.load(
-              '/models/Taza_Mug_Normal.glb',
+              '/Taza_Mug_Normal.glb',
               (fallbackGltf) => {
                 processLoadedGLTF(fallbackGltf.scene, fileName);
               },
@@ -640,7 +684,7 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
               )}
             </div>
             <p className="text-[11px] text-stone-500">
-              {modelMeta?.fileName || 'Taza_Mug_Normal.glb'} • Proporciones reales de producto
+              {modelMeta?.fileName || 'Taza_Mug_Normal 6.glb'} • Proporciones reales de producto
             </p>
           </div>
         </div>
@@ -660,6 +704,62 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
             <Sliders className="w-3.5 h-3.5" />
             <span>Inspeccionar UVs</span>
           </button>
+
+          {/* Inside Color Picker toggle */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                showColorPicker
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                  : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
+              }`}
+              title="Cambiar color interior de la taza (Mug_Inside)"
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Interior</span>
+              <span
+                className="w-3 h-3 rounded-full border border-stone-300 inline-block shrink-0"
+                style={{ backgroundColor: insideColor }}
+              />
+            </button>
+
+            {/* Color picker dropdown */}
+            {showColorPicker && (
+              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white rounded-xl border border-stone-200 shadow-lg p-3 w-48">
+                <p className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-2">
+                  Color Interior (Mug_Inside)
+                </p>
+                <div className="grid grid-cols-5 gap-1.5 mb-2">
+                  {INSIDE_COLOR_PRESETS.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => { setInsideColor(preset.value); }}
+                      title={preset.label}
+                      className={`w-7 h-7 rounded-lg border-2 transition-all cursor-pointer hover:scale-110 ${
+                        insideColor === preset.value
+                          ? 'border-indigo-500 ring-2 ring-indigo-300'
+                          : 'border-stone-200'
+                      }`}
+                      style={{ backgroundColor: preset.value }}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 pt-2 border-t border-stone-100">
+                  <label className="text-[10px] text-stone-500 shrink-0">Personalizado:</label>
+                  <input
+                    type="color"
+                    value={insideColor}
+                    onChange={(e) => setInsideColor(e.target.value)}
+                    className="w-8 h-7 rounded cursor-pointer border border-stone-200"
+                  />
+                  <span className="text-[10px] font-mono text-stone-600">{insideColor}</span>
+                </div>
+              </div>
+            )}
+          </div>
 
           <input
             ref={fileInputRef}
@@ -700,7 +800,7 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
           <div className="absolute inset-0 bg-stone-50/80 backdrop-blur-xs flex flex-col items-center justify-center gap-2 z-20">
             <RefreshCw className="w-6 h-6 animate-spin text-indigo-600" />
             <span className="text-xs font-semibold text-stone-700">
-              Cargando modelo 3D (Taza_Mug_Normal.glb)...
+              Cargando modelo 3D (Taza_Mug_Normal 6.glb)...
             </span>
             <span className="text-[11px] text-stone-400">
               Inicializando mallas, materiales y UV mapping
@@ -718,7 +818,7 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => loadModelFromUrl('/Taza_Mug_Normal.glb', 'Taza_Mug_Normal.glb')}
+                onClick={() => loadModelFromUrl('/models/Taza_Mug_Normal 6.glb', 'Taza_Mug_Normal 6.glb')}
                 className="px-3 py-1.5 text-xs font-semibold bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-colors cursor-pointer"
               >
                 Reintentar carga

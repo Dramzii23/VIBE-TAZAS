@@ -9,28 +9,31 @@ import { BackendStatusCard } from './components/BackendStatusCard';
 import { AuthModal } from './components/AuthModal';
 import { CloudDesignsModal } from './components/CloudDesignsModal';
 import { AdminDashboard } from './components/AdminDashboard';
-import { UploadedImage, DesignCanvasSettings, ADMIN_UID, isUserAdmin } from './types';
+import { UploadedImage, DesignCanvasSettings, isUserAdmin } from './types';
 import { SavedCloudDesign } from './services/designStorage';
-import { computeInitialTransform } from './utils/transformUtils';
+import { computeInitialTransformByDpi, DpiMode } from './utils/transformUtils';
 import { useAuth } from './context/AuthContext';
-import { CheckCircle2, Sparkles, Cloud, UserCheck, ShieldAlert, Layers } from 'lucide-react';
+import { CheckCircle2, Sparkles, Cloud, UserCheck, ShieldAlert } from 'lucide-react';
 
 export default function App() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const isAdmin = isUserAdmin(user?.uid, user?.email, profile?.role);
 
-  // Admin view toggle (defaults to 'admin' when admin logs in)
-  const [adminViewMode, setAdminViewMode] = useState<'admin' | 'editor'>('admin');
+  // Admin view toggle — initialized only once after auth resolves to avoid flicker
+  const [adminViewMode, setAdminViewMode] = useState<'admin' | 'editor' | null>(null);
 
-  // When admin logs in, default to the admin view
+  // Set the initial view exactly once when auth finishes loading
   useEffect(() => {
-    if (isAdmin) {
-      setAdminViewMode('admin');
+    if (!loading && adminViewMode === null) {
+      setAdminViewMode(isAdmin ? 'admin' : 'editor');
     }
-  }, [user?.uid, isAdmin]);
+  }, [loading]);
 
   // State for the uploaded image
   const [uploadedImage, setUploadedImage] = useState<UploadedImage | null>(null);
+
+  // DPI mode for image placement
+  const [dpiMode, setDpiMode] = useState<DpiMode>(300);
 
   // Preview mode (3D GLB model by default, or 2D silhouette simulation)
   const [previewMode, setPreviewMode] = useState<'3d' | '2d'>('3d');
@@ -76,7 +79,7 @@ export default function App() {
 
   const handleImageLoaded = (img: UploadedImage) => {
     setUploadedImage(img);
-    const initial = computeInitialTransform(img.width, img.height, canvasSettings.fitMode);
+    const initial = computeInitialTransformByDpi(img.width, img.height, dpiMode);
     setCanvasSettings((prev) => ({
       ...prev,
       imageTransform: initial,
@@ -115,6 +118,18 @@ export default function App() {
   };
 
   const isShowingAdminDashboard = isAdmin && adminViewMode === 'admin';
+
+  // While Firebase auth is resolving, show a neutral loading screen to avoid flicker
+  if (loading || adminViewMode === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-stone-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-stone-500 font-medium">Cargando configurador...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 font-sans text-stone-900 selection:bg-indigo-600 selection:text-white">
@@ -238,18 +253,10 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Right Column: Upload Controls, Previews & Backend Status */}
+              {/* Right Column: 3D Viewer first, then Specs & Backend Status */}
               <div className="lg:col-span-5 flex flex-col gap-6 order-1 lg:order-2">
                 
-                {/* 1. Upload Section with Drag & Drop and Feedback */}
-                <UploadSection
-                  currentImage={uploadedImage}
-                  onImageLoaded={handleImageLoaded}
-                  onRemoveImage={() => handleReset()}
-                  fileInputRef={fileInputRef}
-                />
-
-                {/* 2. Mug 3D Viewer (Blender GLB) / 2D Simulation Switcher */}
+                {/* 1. Mug 3D Viewer (Blender GLB) / 2D Simulation Switcher — TOP */}
                 <div className="flex flex-col gap-2.5">
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
@@ -298,14 +305,26 @@ export default function App() {
                   )}
                 </div>
 
-                {/* 3. Product Specs & Sublimation Details */}
+                {/* 2. Product Specs & Sublimation Details */}
                 <SpecsCard />
 
-                {/* 4. Backend & Firebase Connectivity Status Card */}
+                {/* 3. Backend & Firebase Connectivity Status Card */}
                 <BackendStatusCard />
 
               </div>
 
+            </div>
+
+            {/* Bottom Full-Width: Upload Section */}
+            <div className="w-full">
+              <UploadSection
+                currentImage={uploadedImage}
+                onImageLoaded={handleImageLoaded}
+                onRemoveImage={() => handleReset()}
+                fileInputRef={fileInputRef}
+                dpiMode={dpiMode}
+                onDpiModeChange={setDpiMode}
+              />
             </div>
           </>
         )}
