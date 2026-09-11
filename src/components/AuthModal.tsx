@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   X,
   Mail,
@@ -77,7 +77,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           throw new Error('Por favor ingresa tu nombre completo.');
         }
         await register(email, password, displayName);
-        setSuccessMessage('¡Cuenta creada con éxito! Bienvenido a SubliStudio.');
+        setSuccessMessage('¡Cuenta creada con éxito! Bienvenido a MalaTinta Studio.');
         setTimeout(() => {
           onClose();
         }, 1000);

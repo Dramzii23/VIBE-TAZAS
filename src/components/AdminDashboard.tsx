@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import {
   ShieldAlert,
   Users,
@@ -29,7 +29,7 @@ interface AdminDashboardProps {
   onSwitchToEditor: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({
   onSelectDesignForEditor,
   onSwitchToEditor,
 }) => {
@@ -601,4 +601,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
     </div>
   );
-};
+});
+
+AdminDashboard.displayName = 'AdminDashboard';
