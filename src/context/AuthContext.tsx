@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   User,
   signInWithEmailAndPassword,
@@ -44,7 +44,7 @@ async function syncSessionWithBackend(userData: { uid: string; email: string; di
 // Persist known user locally so all registered accounts are accessible in Admin Dashboard
 export function rememberUserLocally(userProfile: UserProfile) {
   try {
-    const raw = localStorage.getItem('sublistudio_known_users');
+    const raw = localStorage.getItem('MalaTinta Studio_known_users');
     let list: UserProfile[] = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(list)) list = [];
     const idx = list.findIndex((u) => u.uid === userProfile.uid);
@@ -53,7 +53,7 @@ export function rememberUserLocally(userProfile: UserProfile) {
     } else {
       list.push(userProfile);
     }
-    localStorage.setItem('sublistudio_known_users', JSON.stringify(list));
+    localStorage.setItem('MalaTinta Studio_known_users', JSON.stringify(list));
   } catch (e) {
     console.warn('No se pudo guardar usuario en localStorage:', e);
   }
@@ -86,17 +86,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           lastLoginAt: new Date().toISOString(),
         };
 
-        // Update last login and ensure admin role is persisted
-        try {
-          await setDoc(userDocRef, {
-            role: effectiveRole,
-            email: firebaseUser.email || data.email,
-            displayName: prof.displayName,
-            lastLoginAt: serverTimestamp(),
-          }, { merge: true });
-        } catch (e) {
-          console.warn('Could not update lastLoginAt:', e);
-        }
+        // Update last login in background — no await to avoid triggering re-renders
+        setDoc(userDocRef, {
+          role: effectiveRole,
+          email: firebaseUser.email || data.email,
+          displayName: prof.displayName,
+          lastLoginAt: serverTimestamp(),
+        }, { merge: true }).catch((e) => console.warn('Could not update lastLoginAt:', e));
 
         return prof;
       } else {

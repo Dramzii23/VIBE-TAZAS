@@ -8,7 +8,6 @@ import {
   RefreshCw, 
   Sparkles, 
   ShieldCheck,
-  Gauge,
 } from 'lucide-react';
 import { UploadedImage } from '../types';
 import { SAMPLE_DESIGNS, SampleDesign } from '../data/sampleDesigns';
@@ -229,67 +228,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
           </span>
         </div>
 
-        {/* ── DPI / Resolution Selector ─────────────────────────── */}
-        <div className="mb-4 p-3.5 rounded-xl bg-stone-50 border border-stone-200">
-          <div className="flex items-center gap-2 mb-2.5">
-            <Gauge className="w-4 h-4 text-indigo-600 shrink-0" />
-            <span className="text-xs font-semibold text-stone-900">Resolución de impresión</span>
-            <span className="text-[10px] text-stone-400 ml-auto">
-              Afecta el tamaño físico al colocar la imagen
-            </span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            {DPI_OPTIONS.map((opt) => {
-              const isActive = dpiMode === opt.value;
-              const colorMap: Record<string, string> = {
-                rose:    isActive ? 'border-rose-500 bg-rose-50 ring-2 ring-rose-300/50'    : 'border-stone-200 hover:border-rose-300 bg-white',
-                amber:   isActive ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-300/50' : 'border-stone-200 hover:border-amber-300 bg-white',
-                emerald: isActive ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-300/50' : 'border-stone-200 hover:border-emerald-300 bg-white',
-              };
-              const labelColorMap: Record<string, string> = {
-                rose:    isActive ? 'text-rose-800'    : 'text-stone-600',
-                amber:   isActive ? 'text-amber-800'   : 'text-stone-600',
-                emerald: isActive ? 'text-emerald-800' : 'text-stone-600',
-              };
-              const dotColorMap: Record<string, string> = {
-                rose:    'bg-rose-500',
-                amber:   'bg-amber-500',
-                emerald: 'bg-emerald-500',
-              };
-
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onDpiModeChange(opt.value)}
-                  className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all cursor-pointer ${colorMap[opt.color]}`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${dotColorMap[opt.color]}`} />
-                    <span className={`text-xs font-bold ${labelColorMap[opt.color]}`}>{opt.quality}</span>
-                  </div>
-                  <span className={`text-[11px] font-mono font-semibold ${labelColorMap[opt.color]}`}>
-                    {opt.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Physical size hint when image is loaded */}
-          {currentImage && physicalSize && (
-            <p className="mt-2.5 text-[11px] text-stone-500 font-mono text-center">
-              Imagen a <strong className="text-stone-700">{dpiMode} DPI</strong>:{' '}
-              <span className="text-indigo-700 font-semibold">{physicalSize.w} × {physicalSize.h} cm</span>
-              {' '}→ área imprimible: 20 × 9.5 cm
-            </p>
-          )}
-        </div>
-        {/* ─────────────────────────────────────────────────────── */}
-
         <p className="text-xs sm:text-sm text-stone-600 mb-4 leading-relaxed">
-          Selecciona una fotografía, arte o ilustración en formato <strong>JPG</strong> o <strong>PNG</strong>. La imagen se colocará en el lienzo según el tamaño físico que corresponde a <strong>{dpiMode} DPI</strong>.
+          Selecciona una fotografía, arte o ilustración en formato <strong>JPG</strong> o <strong>PNG</strong>.
         </p>
 
         {/* Drag and Drop Zone */}

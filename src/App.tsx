@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { SublimationCanvas } from './components/SublimationCanvas';
 import { UploadSection } from './components/UploadSection';
@@ -13,21 +13,27 @@ import { UploadedImage, DesignCanvasSettings, isUserAdmin } from './types';
 import { SavedCloudDesign } from './services/designStorage';
 import { computeInitialTransformByDpi, DpiMode } from './utils/transformUtils';
 import { useAuth } from './context/AuthContext';
-import { CheckCircle2, Sparkles, Cloud, UserCheck, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, Sparkles, Cloud, UserCheck, ShieldAlert, Gauge } from 'lucide-react';
 
 export default function App() {
   const { user, profile, loading } = useAuth();
   const isAdmin = isUserAdmin(user?.uid, user?.email, profile?.role);
 
-  // Admin view toggle — initialized only once after auth resolves to avoid flicker
-  const [adminViewMode, setAdminViewMode] = useState<'admin' | 'editor' | null>(null);
+  // Initialize admin view mode based on auth state - use lazy initializer
+  const [adminViewMode, setAdminViewMode] = useState<'admin' | 'editor'>(() => {
+    // This only runs once on mount, so it will be 'editor' initially
+    return 'editor';
+  });
 
-  // Set the initial view exactly once when auth finishes loading
+  // Set correct view exactly once after auth resolves — no deps on isAdmin to avoid loops
+  const hasSetInitialView = useRef(false);
   useEffect(() => {
-    if (!loading && adminViewMode === null) {
-      setAdminViewMode(isAdmin ? 'admin' : 'editor');
-    }
-  }, [loading]);
+    if (loading) return;
+    if (hasSetInitialView.current) return;
+    hasSetInitialView.current = true;
+    setAdminViewMode(isUserAdmin(user?.uid, user?.email, profile?.role) ? 'admin' : 'editor');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]); // intentionally only [loading] — runs once when auth finishes
 
   // State for the uploaded image
   const [uploadedImage, setUploadedImage] = useState<UploadedImage | null>(null);
@@ -91,7 +97,7 @@ export default function App() {
     setIsAuthModalOpen(true);
   };
 
-  const handleLoadCloudDesign = (design: SavedCloudDesign) => {
+  const handleLoadCloudDesign = useCallback((design: SavedCloudDesign) => {
     const loadedImg: UploadedImage = {
       id: design.id,
       name: design.imageName,
@@ -115,12 +121,16 @@ export default function App() {
     if (adminViewMode === 'admin') {
       setAdminViewMode('editor');
     }
-  };
+  }, [adminViewMode]);
+
+  const handleSwitchToEditor = useCallback(() => {
+    setAdminViewMode('editor');
+  }, []);
 
   const isShowingAdminDashboard = isAdmin && adminViewMode === 'admin';
 
-  // While Firebase auth is resolving, show a neutral loading screen to avoid flicker
-  if (loading || adminViewMode === null) {
+  // Show a clean loading screen while Firebase resolves to avoid any flash
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-50">
         <div className="flex flex-col items-center gap-3">
@@ -150,7 +160,7 @@ export default function App() {
           /* ADMIN VIEW */
           <AdminDashboard
             onSelectDesignForEditor={handleLoadCloudDesign}
-            onSwitchToEditor={() => setAdminViewMode('editor')}
+            onSwitchToEditor={handleSwitchToEditor}
           />
         ) : (
           /* NORMAL PERSONAL DASHBOARD & CONFIGURATOR */
@@ -175,9 +185,9 @@ export default function App() {
             {/* Hero / Context Title Bar */}
             <section id="hero-banner" className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-stone-200/80">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 mb-2">
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Configurador de Sublimación • Taza Cerámica 11 oz</span>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-[#2563EB]/10 text-[#2563EB] border border-[#2563EB]/20 mb-2">
+                  <img src="/assets/logo-malatinta.png" alt="" className="w-4 h-4 object-contain rounded" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
+                  <span>MalaTinta Studio • Taza Cerámica 11 oz</span>
                 </div>
                 <h1 className="font-display font-bold text-2xl sm:text-3xl text-stone-950 tracking-tight">
                   Personaliza tu Taza de Cerámica (11 oz)
@@ -235,6 +245,44 @@ export default function App() {
                   onUpdateSettings={handleUpdateSettings}
                   onTriggerUpload={handleTriggerUpload}
                 />
+
+                {/* DPI / Resolution Selector — below the canvas */}
+                <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-xs">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Gauge className="w-4 h-4 text-[#2563EB] shrink-0" />
+                    <span className="text-xs font-semibold text-stone-900">Resolución de impresión</span>
+                    <span className="text-[10px] text-stone-400 ml-auto">Afecta el tamaño físico al colocar la imagen</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { value: 72 as DpiMode, label: '72 DPI', quality: 'Baja', color: 'rose' },
+                      { value: 150 as DpiMode, label: '150 DPI', quality: 'Media', color: 'amber' },
+                      { value: 300 as DpiMode, label: '300 DPI', quality: 'Alta', color: 'emerald' },
+                    ]).map((opt) => {
+                      const isActive = dpiMode === opt.value;
+                      const styles: Record<string, { border: string; dot: string; text: string }> = {
+                        rose:    { border: isActive ? 'border-rose-500 bg-rose-50 ring-2 ring-rose-300/50' : 'border-stone-200 hover:border-rose-300 bg-white', dot: 'bg-rose-500', text: isActive ? 'text-rose-800' : 'text-stone-600' },
+                        amber:   { border: isActive ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-300/50' : 'border-stone-200 hover:border-amber-300 bg-white', dot: 'bg-amber-500', text: isActive ? 'text-amber-800' : 'text-stone-600' },
+                        emerald: { border: isActive ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-300/50' : 'border-stone-200 hover:border-emerald-300 bg-white', dot: 'bg-emerald-500', text: isActive ? 'text-emerald-800' : 'text-stone-600' },
+                      };
+                      const s = styles[opt.color];
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setDpiMode(opt.value)}
+                          className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all cursor-pointer ${s.border}`}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
+                            <span className={`text-xs font-bold ${s.text}`}>{opt.quality}</span>
+                          </div>
+                          <span className={`text-[11px] font-mono font-semibold ${s.text}`}>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* Sublimation Pro-Tips info box */}
                 <div className="bg-stone-100/70 rounded-2xl p-4 sm:p-5 border border-stone-200 text-xs sm:text-sm text-stone-600 flex flex-col gap-2.5">
@@ -350,7 +398,7 @@ export default function App() {
       {/* Simple, clean footer */}
       <footer className="mt-auto border-t border-stone-200 bg-white py-4 text-center text-xs text-stone-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Configurador de Sublimación MVP — Cerámica 11 oz</span>
+          <span>MalaTinta Studio — Configurador de Sublimación · Cerámica 11 oz</span>
           <span className="text-stone-400">
             {isAdmin
               ? 'Conectado como Administrador (UID: 677rpirToDgJ9lNJmsvqhxOOBKf1)'

@@ -1,4 +1,4 @@
-import {
+﻿import {
   collection,
   getDocs,
   query,
@@ -135,8 +135,8 @@ export async function fetchAllUsersForAdmin(): Promise<AdminUserSummary[]> {
   if (!usersMap.has(ADMIN_UID)) {
     registerUser(
       ADMIN_UID,
-      'admin@sublistudio.com',
-      'Administrador SubliStudio',
+      'admin@MalaTinta Studio.com',
+      'Administrador MalaTinta Studio',
       null,
       '10 sep 2026, 00:00',
       'Sesión verificada'
@@ -158,7 +158,7 @@ export async function fetchAllUsersForAdmin(): Promise<AdminUserSummary[]> {
 
   // 5. Check LocalStorage for accounts registered on this browser instance
   try {
-    const localUsersRaw = localStorage.getItem('sublistudio_known_users');
+    const localUsersRaw = localStorage.getItem('MalaTinta Studio_known_users');
     if (localUsersRaw) {
       const localUsers = JSON.parse(localUsersRaw);
       if (Array.isArray(localUsers)) {
@@ -255,7 +255,7 @@ export async function fetchUserFilesForAdmin(userId: string): Promise<SavedCloud
 
   // Check local storage for designs saved by this user
   try {
-    const localDesignsRaw = localStorage.getItem('sublistudio_cloud_designs');
+    const localDesignsRaw = localStorage.getItem('MalaTinta Studio_cloud_designs');
     if (localDesignsRaw) {
       const localDesigns = JSON.parse(localDesignsRaw);
       if (Array.isArray(localDesigns)) {

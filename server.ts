@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    service: 'SubliStudio Backend',
+    service: 'MalaTinta Studio Backend',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     firebase: {
@@ -58,8 +58,8 @@ function loadPersistedUsers(): Map<string, { uid: string; email: string; display
   // Default system admin user
   map.set('677rpirToDgJ9lNJmsvqhxOOBKf1', {
     uid: '677rpirToDgJ9lNJmsvqhxOOBKf1',
-    email: 'admin@sublistudio.com',
-    displayName: 'Administrador SubliStudio',
+    email: 'admin@MalaTinta Studio.com',
+    displayName: 'Administrador MalaTinta Studio',
     lastSeen: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   });
@@ -159,7 +159,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`SubliStudio Server running on http://0.0.0.0:${PORT}`);
+    console.log(`MalaTinta Studio Server running on http://0.0.0.0:${PORT}`);
   });
 }
 
