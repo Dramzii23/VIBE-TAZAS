@@ -62,9 +62,16 @@ interface ModelMetadata {
 interface Mug3DViewerProps {
   image?: UploadedImage | null;
   imageTransform?: ImageTransform | null;
+  insideColor?: string;
+  onInsideColorChange?: (color: string) => void;
 }
 
-export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTransform = null }) => {
+export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({
+  image = null,
+  imageTransform = null,
+  insideColor: insideColorProp,
+  onInsideColorChange,
+}) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
 
@@ -96,7 +103,20 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
   const [showTechInspector, setShowTechInspector] = useState<boolean>(false);
   const [currentCameraAngle, setCurrentCameraAngle] = useState<'front' | 'handle' | 'back' | 'top'>('front');
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
-  const [insideColor, setInsideColor] = useState<string>('#ffffff');
+  const [insideColor, setInsideColorState] = useState<string>(insideColorProp || '#ffffff');
+
+  // Keep state in sync if prop changes
+  useEffect(() => {
+    if (insideColorProp && insideColorProp !== insideColor) {
+      setInsideColorState(insideColorProp);
+    }
+  }, [insideColorProp]);
+
+  const updateInsideColor = (newColor: string) => {
+    setInsideColorState(newColor);
+    onInsideColorChange?.(newColor);
+  };
+
   const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   // Ref to track inside mesh material for color changes
@@ -114,9 +134,9 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
     scene.background = null; // transparent to inherit clean container background
     sceneRef.current = scene;
 
-    // 2. Camera (Product framing for standard Blender 11 oz mug)
+    // 2. Camera (Product framing for standard Blender 11 oz mug - adjusted with comfortable breathing room)
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
-    camera.position.set(0, 1.2, 3.8);
+    camera.position.set(0, 1.35, 5.8);
     cameraRef.current = camera;
 
     // 3. Renderer with high color fidelity & soft shadows
@@ -139,8 +159,8 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
-    controls.minDistance = 1.5;
-    controls.maxDistance = 6.0;
+    controls.minDistance = 1.8;
+    controls.maxDistance = 9.0;
     controls.maxPolarAngle = Math.PI / 2 + 0.08; // Prevent going beneath floor
     controls.target.set(0, 0.9, 0);
     controls.autoRotate = true;
@@ -607,16 +627,16 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
 
     switch (angle) {
       case 'front':
-        cameraRef.current.position.set(0, targetY + 0.3, 3.6);
+        cameraRef.current.position.set(0, targetY + 0.4, 5.8);
         break;
       case 'handle':
-        cameraRef.current.position.set(3.6, targetY + 0.3, 0);
+        cameraRef.current.position.set(5.8, targetY + 0.4, 0);
         break;
       case 'back':
-        cameraRef.current.position.set(0, targetY + 0.3, -3.6);
+        cameraRef.current.position.set(0, targetY + 0.4, -5.8);
         break;
       case 'top':
-        cameraRef.current.position.set(0, 4.2, 0.8);
+        cameraRef.current.position.set(0, 6.4, 1.4);
         break;
     }
     controlsRef.current.update();
@@ -715,32 +735,46 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                   : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
               }`}
-              title="Cambiar color interior de la taza (Mug_Inside)"
+              title="Cambiar color interior de la taza (sujeto a disponibilidad de stock)"
             >
               <Palette className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Interior</span>
+              <span className="hidden sm:inline">Color Interior</span>
               <span
-                className="w-3 h-3 rounded-full border border-stone-300 inline-block shrink-0"
+                className="w-3 h-3 rounded-full border border-stone-300 inline-block shrink-0 shadow-2xs"
                 style={{ backgroundColor: insideColor }}
               />
             </button>
 
             {/* Color picker dropdown */}
             {showColorPicker && (
-              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white rounded-xl border border-stone-200 shadow-lg p-3 w-48">
-                <p className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-2">
-                  Color Interior (Mug_Inside)
-                </p>
+              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white rounded-xl border border-stone-200 shadow-xl p-3 w-60 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between gap-1 mb-1.5">
+                  <p className="text-[10px] font-bold text-stone-700 uppercase tracking-wider">
+                    Color Interior (Mug_Inside)
+                  </p>
+                  <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200/80">
+                    Sujeto a stock
+                  </span>
+                </div>
+
+                {/* Availability Notice */}
+                <div className="flex items-start gap-1.5 p-2 mb-2.5 rounded-lg bg-amber-50/90 border border-amber-200 text-[10px] text-amber-900 leading-tight">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    El color interior está <strong>sujeto a disponibilidad de stock</strong> al momento de confeccionar tu pedido.
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-5 gap-1.5 mb-2">
                   {INSIDE_COLOR_PRESETS.map((preset) => (
                     <button
                       key={preset.value}
                       type="button"
-                      onClick={() => { setInsideColor(preset.value); }}
-                      title={preset.label}
+                      onClick={() => { updateInsideColor(preset.value); }}
+                      title={`${preset.label} (sujeto a disponibilidad)`}
                       className={`w-7 h-7 rounded-lg border-2 transition-all cursor-pointer hover:scale-110 ${
                         insideColor === preset.value
-                          ? 'border-indigo-500 ring-2 ring-indigo-300'
+                          ? 'border-indigo-500 ring-2 ring-indigo-300 shadow-xs'
                           : 'border-stone-200'
                       }`}
                       style={{ backgroundColor: preset.value }}
@@ -752,7 +786,7 @@ export const Mug3DViewer: React.FC<Mug3DViewerProps> = ({ image = null, imageTra
                   <input
                     type="color"
                     value={insideColor}
-                    onChange={(e) => setInsideColor(e.target.value)}
+                    onChange={(e) => updateInsideColor(e.target.value)}
                     className="w-8 h-7 rounded cursor-pointer border border-stone-200"
                   />
                   <span className="text-[10px] font-mono text-stone-600">{insideColor}</span>

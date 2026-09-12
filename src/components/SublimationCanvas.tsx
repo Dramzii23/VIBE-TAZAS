@@ -554,83 +554,11 @@ export const SublimationCanvas: React.FC<SublimationCanvasProps> = ({
             {/* Background Texture / Pure White Paper tint inside printable area */}
             <div className="absolute inset-0 bg-white rounded-lg pointer-events-none shadow-sm z-0" />
 
-            {/* Sublimation Zone Columns (Left/Back, Center, Right/Front) */}
-            {settings.showGuides && (
-              <div className="absolute inset-0 grid grid-cols-3 pointer-events-none z-10">
-                {/* Zone 1: Izquierda (Reverso) */}
-                <div 
-                  className="border-r border-indigo-400/40 relative pointer-events-none"
-                  onMouseEnter={() => setActiveZoneTooltip('Lado Izquierdo (Reverso al sostener con mano derecha)')}
-                  onMouseLeave={() => setActiveZoneTooltip(null)}
-                >
-                  <div className="absolute top-2 left-3 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-900/80 text-white backdrop-blur-xs pointer-events-none select-none">
-                    Reverso / Izq
-                  </div>
-                  <div className="absolute bottom-2 left-3 text-[10px] font-mono text-stone-400 pointer-events-none select-none">
-                    0 - 6.6 cm
-                  </div>
-                </div>
-
-                {/* Zone 2: Centro (Frente Visible) */}
-                <div 
-                  className="border-r border-indigo-400/40 relative pointer-events-none"
-                  onMouseEnter={() => setActiveZoneTooltip('Zona Central (Cara frontal opuesta al asa)')}
-                  onMouseLeave={() => setActiveZoneTooltip(null)}
-                >
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-900/80 text-white backdrop-blur-xs pointer-events-none select-none">
-                    Centro Frontal
-                  </div>
-                  {/* Vertical Center Axis Line */}
-                  <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px border-l border-dashed border-indigo-400/60 pointer-events-none"></div>
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-stone-400 pointer-events-none select-none">
-                    10 cm (Eje)
-                  </div>
-                </div>
-
-                {/* Zone 3: Derecha (Frente) */}
-                <div 
-                  className="relative pointer-events-none"
-                  onMouseEnter={() => setActiveZoneTooltip('Lado Derecho (Frente al sostener con mano derecha)')}
-                  onMouseLeave={() => setActiveZoneTooltip(null)}
-                >
-                  <div className="absolute top-2 right-3 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-900/80 text-white backdrop-blur-xs pointer-events-none select-none">
-                    Frente / Der
-                  </div>
-                  <div className="absolute bottom-2 right-3 text-[10px] font-mono text-stone-400 pointer-events-none select-none">
-                    13.3 - 20 cm
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Safe Margin Guide (5mm safe border) */}
-            {settings.showGuides && (
-              <div 
-                className="absolute inset-[3.5%] border border-dashed border-amber-500/70 rounded pointer-events-none z-10"
-                title="Margen de seguridad (5 mm del borde). Mantén textos y logotipos dentro de esta línea."
-              >
-                <div className="absolute bottom-1 right-2 px-1.5 py-0.5 bg-amber-500/90 text-white rounded text-[9px] font-mono font-medium">
-                  Margen Seguro 5mm
-                </div>
-              </div>
-            )}
-
-            {/* Horizontal Center Guide */}
-            {settings.showGuides && (
-              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t border-dashed border-indigo-300/50 pointer-events-none z-10" />
-            )}
-
-            {/* Handle/Ear indicators on far edges */}
-            <div className="absolute top-0 bottom-0 left-0 w-2 bg-gradient-to-r from-stone-400/40 to-transparent pointer-events-none z-10" title="Borde cercano al asa izquierda" />
-            <div className="absolute top-0 bottom-0 right-0 w-2 bg-gradient-to-l from-stone-400/40 to-transparent pointer-events-none z-10" title="Borde cercano al asa derecha" />
-
-            {/* CONTENT LAYER: INTERACTIVE TRANSFORMABLE IMAGE (Allows overflow into surrounding workspace) */}
+            {/* CONTENT LAYER: INTERACTIVE TRANSFORMABLE IMAGE */}
             {image ? (
               <div
                 id="interactive-image-container"
-                className={`absolute select-none ${
-                  isSelected ? 'z-30' : 'z-20'
-                }`}
+                className="absolute select-none"
                 style={{
                   left: `${transform.x}%`,
                   top: `${transform.y}%`,
@@ -643,9 +571,9 @@ export const SublimationCanvas: React.FC<SublimationCanvasProps> = ({
                   setIsSelected(true);
                 }}
               >
-                {/* Visual Image Render & Move Handler */}
+                {/* Visual Image Render & Move Handler (z-10 so it sits below guides) */}
                 <div
-                  className={`relative w-full h-full group ${
+                  className={`relative w-full h-full group z-10 ${
                     isDragging ? 'cursor-grabbing' : 'cursor-grab'
                   }`}
                   onPointerDown={handlePointerDownMove}
@@ -768,6 +696,79 @@ export const SublimationCanvas: React.FC<SublimationCanvasProps> = ({
                 </div>
               )}
             </div>
+
+            {/* SUBLIMATION GUIDES LAYER (RENDERED ON TOP OF IMAGE AT z-30 WITH POINTER-EVENTS-NONE) */}
+            {settings.showGuides && (
+              <div
+                id="sublimation-guides-layer"
+                className="absolute inset-0 pointer-events-none select-none z-30"
+              >
+                {/* 1. Sublimation 3-Zone Columns (Left/Back, Center, Right/Front) */}
+                <div className="absolute inset-0 grid grid-cols-3">
+                  {/* Zone 1: Izquierda (Reverso) */}
+                  <div className="border-r-2 border-dashed border-indigo-400/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] relative">
+                    <div className="absolute top-2 left-3 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-stone-900/90 text-white border border-white/30 shadow-md backdrop-blur-xs select-none">
+                      Reverso / Izq
+                    </div>
+                    <div className="absolute bottom-2 left-3 px-1.5 py-0.5 rounded text-[9px] font-mono font-medium bg-stone-900/80 text-stone-200 border border-white/10 shadow-xs select-none">
+                      0 - 6.6 cm
+                    </div>
+                  </div>
+
+                  {/* Zone 2: Centro (Frente Visible) & Vertical Center Axis */}
+                  <div className="border-r-2 border-dashed border-indigo-400/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] relative">
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-900/90 text-white border border-indigo-300/50 shadow-md backdrop-blur-xs select-none whitespace-nowrap">
+                      Centro Frontal
+                    </div>
+                    {/* Vertical Center Axis (10 cm center of mug) */}
+                    <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0 border-l-2 border-dashed border-indigo-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" />
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-indigo-950/90 text-indigo-200 border border-indigo-400/40 shadow-xs select-none whitespace-nowrap">
+                      10 cm (Eje)
+                    </div>
+                  </div>
+
+                  {/* Zone 3: Derecha (Frente) */}
+                  <div className="relative">
+                    <div className="absolute top-2 right-3 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-stone-900/90 text-white border border-white/30 shadow-md backdrop-blur-xs select-none">
+                      Frente / Der
+                    </div>
+                    <div className="absolute bottom-2 right-3 px-1.5 py-0.5 rounded text-[9px] font-mono font-medium bg-stone-900/80 text-stone-200 border border-white/10 shadow-xs select-none">
+                      13.3 - 20 cm
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Horizontal Center Axis Guideline */}
+                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t-2 border-dashed border-indigo-300/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
+
+                {/* 3. Safe Margin Guide (5mm safe border for text and critical elements) */}
+                <div 
+                  className="absolute border-2 border-dashed border-amber-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] rounded pointer-events-none"
+                  style={{
+                    top: '5.26%',
+                    bottom: '5.26%',
+                    left: '2.5%',
+                    right: '2.5%',
+                  }}
+                  title="Margen de seguridad (5 mm del borde). Mantén textos y logotipos dentro de esta línea."
+                >
+                  <div className="absolute bottom-1 right-2 px-2 py-0.5 bg-amber-500 text-stone-950 rounded text-[9px] font-mono font-black shadow-md border border-amber-300 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-stone-950 animate-pulse" />
+                    <span>Margen Seguro 5mm</span>
+                  </div>
+                </div>
+
+                {/* 4. Handle/Ear Non-Printable Edge Indicators */}
+                <div 
+                  className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-stone-950/40 to-transparent border-r border-dashed border-stone-400/70"
+                  title="Extremo cercano al asa izquierda (área no alcanzada por la plancha)"
+                />
+                <div 
+                  className="absolute top-0 bottom-0 right-0 w-3 bg-gradient-to-l from-stone-950/40 to-transparent border-l border-dashed border-stone-400/70"
+                  title="Extremo cercano al asa derecha (área no alcanzada por la plancha)"
+                />
+              </div>
+            )}
 
           </div>
 

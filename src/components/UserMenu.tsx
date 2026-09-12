@@ -47,12 +47,13 @@ export const UserMenu: React.FC<UserMenuProps> = ({
 
   if (!user) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Desktop Buttons (Tablet & Desktop) */}
         <button
           id="header-login-btn"
           type="button"
           onClick={() => onOpenAuth('login')}
-          className="px-3 py-1.5 text-xs font-semibold text-stone-700 hover:text-stone-900 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg transition-colors cursor-pointer"
+          className="hidden sm:inline-flex h-8 items-center px-3 text-xs font-semibold text-stone-700 hover:text-stone-900 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg transition-colors cursor-pointer"
         >
           Iniciar Sesión
         </button>
@@ -60,10 +61,30 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           id="header-register-btn"
           type="button"
           onClick={() => onOpenAuth('register')}
-          className="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg transition-colors shadow-xs cursor-pointer"
+          className="hidden sm:inline-flex h-8 items-center px-3 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg transition-colors shadow-xs cursor-pointer"
         >
           Registrarse
         </button>
+
+        {/* Mobile View: Compact, elegant segmented auth pill */}
+        <div className="sm:hidden flex items-center h-8 bg-stone-200/70 p-0.5 rounded-lg border border-stone-300/80 shrink-0">
+          <button
+            id="header-mobile-login-btn"
+            type="button"
+            onClick={() => onOpenAuth('login')}
+            className="h-7 px-2.5 flex items-center text-[11px] font-bold text-stone-700 hover:text-stone-900 bg-white rounded-md shadow-2xs transition-colors cursor-pointer"
+          >
+            Entrar
+          </button>
+          <button
+            id="header-mobile-register-btn"
+            type="button"
+            onClick={() => onOpenAuth('register')}
+            className="h-7 px-2.5 flex items-center text-[11px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-xs transition-colors cursor-pointer ml-0.5"
+          >
+            Registro
+          </button>
+        </div>
       </div>
     );
   }
@@ -78,7 +99,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         id="user-profile-menu-btn"
         type="button"
         onClick={() => setDropdownOpen(!dropdownOpen)}
-        className={`flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-xl border transition-all cursor-pointer shadow-xs ${
+        className={`flex items-center gap-1.5 sm:gap-2 h-8 p-1 pl-1.5 pr-2 rounded-xl border transition-all cursor-pointer shadow-xs ${
           isAdmin
             ? 'border-amber-400 bg-amber-50/50 hover:bg-amber-100/50'
             : 'border-stone-200 bg-white hover:bg-stone-50'
@@ -88,11 +109,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           <img
             src={profile?.photoURL || user.photoURL || ''}
             alt={displayName}
-            className="w-7 h-7 rounded-lg object-cover border border-stone-200"
+            className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg object-cover border border-stone-200"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className={`w-7 h-7 rounded-lg text-white font-bold text-xs flex items-center justify-center shadow-xs ${
+          <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg text-white font-bold text-[11px] sm:text-xs flex items-center justify-center shadow-xs ${
             isAdmin ? 'bg-amber-600' : 'bg-indigo-600'
           }`}>
             {initials}
