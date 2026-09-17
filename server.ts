@@ -2,7 +2,14 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-import firebaseConfig from './firebase-applet-config.json';
+import 'dotenv/config';
+
+const firebaseConfig = {
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || '',
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  firestoreDatabaseId: process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || '',
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
